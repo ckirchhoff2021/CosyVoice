@@ -93,7 +93,7 @@ def openai_tts(text, voice="wise"):
             'input': text,
             'voice': voice
         }
-        response = requests.request("POST", url, data=payload, stream=True)
+        response = requests.request("POST", url, json=payload, stream=True)
         
         # 处理响应
         tts_audio = b''
@@ -150,7 +150,7 @@ with gr.Blocks(title="TTS语音合成演示") as demo:
             
             mode = gr.Radio(
                 choices=["sft", "zero_shot", "cross_lingual", "instruct2", "openai"], # instruct2 for cosyvoice2
-                value="sft",
+                value="openai",
                 label="合成模式"
             )
             
