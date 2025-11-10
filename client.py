@@ -45,11 +45,11 @@ def inference_speech():
 
 def openai_speech():
     url = "http://{}:{}/v1/audio/speech".format(args.host, args.port)
-    payload = {
+    data = {
         'input': args.tts_text,
         'voice': args.voice
     }
-    response = requests.request("POST", url, data=payload, stream=True)
+    response = requests.request("POST", url, json=data, stream=True)
     tts_audio = b''
     for r in response.iter_content(chunk_size=16000):
         tts_audio += r
