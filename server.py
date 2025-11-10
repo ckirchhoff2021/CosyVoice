@@ -13,6 +13,14 @@ import numpy as np
 sys.path.append('third_party/Matcha-TTS')
 from cosyvoice.cli.cosyvoice import CosyVoice, CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
+from pydantic import BaseModel, Field
+
+
+class TTSRequest(BaseModel):
+    """TTS请求模型"""
+    model: str = Field(default="cosyvoice", description="TTS模型名称")
+    input: str = Field(..., description="要转换为语音的文本内容")
+    voice: str = Field(default="wise", description="语音音色")
 
 
 default_prompts = {
@@ -82,15 +90,16 @@ async def inference_instruct2(tts_text: str = Form(), instruct_text: str = Form(
 
 @app.get("/v1/audio/speech/")
 @app.post("/v1/audio/speech/")
-async def openai_speech(input: str = Form(), voice: str = Form()):
-    print(voice)
+async def openai_speech(request: TTSRequest):
+    input_text = request.input
+    voice = request.voice
     if voice not in default_prompts:
         voice = "default"
     prompt_text = default_prompts[voice]["prompt_text"]
     prompt_wav = default_prompts[voice]["prompt_wav"]
     
     prompt_speech_16k = load_wav(prompt_wav, 16000)
-    model_output = cosyvoice.inference_zero_shot(input, prompt_text, prompt_speech_16k)
+    model_output = cosyvoice.inference_zero_shot(input_text, prompt_text, prompt_speech_16k)
     return StreamingResponse(generate_data(model_output))
 
 
