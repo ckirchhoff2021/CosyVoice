@@ -5,6 +5,7 @@ sys.path.append('third_party/Matcha-TTS')
 from cosyvoice.cli.cosyvoice import AutoModel
 import torchaudio
 import time
+import torch
 
 
 class SpeechGenerator:
@@ -32,10 +33,14 @@ class SpeechGenerator:
             save_file = 'outputs/tt_clone_{}.wav'.format(self.timestamp())
         
         try:
+            audio_chunks = []
             for _, j in enumerate(
                 self.cosyvoice.inference_zero_shot(tts_text, prompt_text, prompt_wav, stream=False)
             ):
-                torchaudio.save(save_file, j['tts_speech'], self.cosyvoice.sample_rate)
+                audio_chunks.append(j['tts_speech'])
+            # 拼接所有音频片段
+            full_audio = torch.cat(audio_chunks, dim=1)
+            torchaudio.save(save_file, full_audio, self.cosyvoice.sample_rate)
             print("Success, save file {}".format(save_file))
             
         except Exception as e:
@@ -57,10 +62,14 @@ class SpeechGenerator:
             save_file = 'outputs/tts_cross_{}.wav'.format(self.timestamp())
         
         try:
+            audio_chunks = []
             for _, j in enumerate(
                 self.cosyvoice.inference_cross_lingual(tts_text, prompt_wav, stream=False)
             ):
-                torchaudio.save(save_file, j['tts_speech'], self.cosyvoice.sample_rate)
+                audio_chunks.append(j['tts_speech'])
+            # 拼接所有音频片段
+            full_audio = torch.cat(audio_chunks, dim=1)
+            torchaudio.save(save_file, full_audio, self.cosyvoice.sample_rate)
             print("Success, save file {}".format(save_file))
             
         except Exception as e:
@@ -91,10 +100,14 @@ class SpeechGenerator:
             save_file = 'outputs/tts_instruct_{}.wav'.format(self.timestamp())
         
         try:
+            audio_chunks = []
             for _, j in enumerate(
                 self.cosyvoice.inference_instruct2(tts_text, instruct_prompt, prompt_wav, stream=False)
             ):
-                torchaudio.save(save_file, j['tts_speech'], self.cosyvoice.sample_rate)
+                audio_chunks.append(j['tts_speech'])
+            # 拼接所有音频片段
+            full_audio = torch.cat(audio_chunks, dim=1)
+            torchaudio.save(save_file, full_audio, self.cosyvoice.sample_rate)
             print("Success, save file {}".format(save_file))
             
         except Exception as e:
@@ -104,6 +117,7 @@ class SpeechGenerator:
 def case():
     generator = SpeechGenerator()
     
+    '''
     generator.voice_clone('八百标兵奔北坡，北坡炮兵并排跑，炮兵怕把标兵碰，标兵怕碰炮兵炮', './asset/zero_shot_prompt.wav')
     generator.cross_lingual_gen(
         'You are a helpful assistant.<|endofprompt|>[breath]因为他们那一辈人[breath]在乡里面住的要习惯一点，[breath]邻居都很活络，[breath]嗯，都很熟悉。[breath]', 
@@ -112,6 +126,14 @@ def case():
     generator.instruct_gen(
         '好少咯，一般系放嗰啲国庆啊，中秋嗰啲可能会咯。',
         'You are a helpful assistant. 请用广东话表达。<|endofprompt|>',
+        './asset/zero_shot_prompt.wav'
+    )
+    '''
+    
+    text = open('inference/refs.txt', 'r').read()
+    generator.instruct_gen(
+        text,
+        'You are a helpful assistant. 请用有磁性的嗓音生成。<|endofprompt|>',
         './asset/zero_shot_prompt.wav'
     )
     
