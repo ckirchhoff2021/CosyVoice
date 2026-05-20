@@ -1,26 +1,36 @@
+#!/usr/bin/env python3
 import sys
 import os
 import warnings
 import argparse
+import subprocess
 
-# 在最最开始就使用 os.dup2 重定向文件描述符
-# 这是最底层的方式，可以捕获 C++ 库的输出
-original_stdout_fd = os.dup(1)
-original_stderr_fd = os.dup(2)
-devnull_fd = os.open(os.devnull, os.O_WRONLY)
+# 检查是否已经是子进程
+if os.environ.get('__SILENT_RUN') != '1':
+    # 父进程：重定向并以子进程方式运行
+    os.environ['__SILENT_RUN'] = '1'
+    os.environ['ORT_LOGGING_LEVEL'] = '3'
+    os.environ['ORT_LOG_LEVEL'] = '3'
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+    
+    # 作为子进程运行自己
+    result = subprocess.run(
+        [sys.executable, '-u', __file__] + sys.argv[1:],
+        capture_output=True,
+        text=True
+    )
+    
+    # 只过滤并打印我们想要的输出
+    for line in result.stdout.splitlines():
+        if line.startswith('Success,') or line.startswith('Task failed'):
+            print(line)
+    
+    sys.exit(result.returncode)
+    
 
-# 先重定向到 /dev/null
-os.dup2(devnull_fd, 1)
-os.dup2(devnull_fd, 2)
+# ===== 下面是实际的业务逻辑 =====
 
-# 设置环境变量
-os.environ['ORT_LOGGING_LEVEL'] = '3'  # 3 = ERROR 级别
-os.environ['ORT_LOG_LEVEL'] = '3'  # 另一种设置方式
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
-
-# 抑制 Python 警告
-warnings.filterwarnings("ignore")
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/..')
 sys.path.append('third_party/Matcha-TTS')
@@ -30,21 +40,13 @@ import logging
 import torchaudio
 import time
 
-
 # 设置 logging
 logging.basicConfig(level=logging.ERROR)
 logging.getLogger().setLevel(logging.ERROR)
 for logger_name in ['transformers', 'deepspeed', 'onnxruntime', 'torch', 'lightning', 'pkg_resources', 'festival', 'cosyvoice']:
     logging.getLogger(logger_name).setLevel(logging.ERROR)
 
-# 用于恢复和禁用输出的函数
-def enable_print():
-    os.dup2(original_stdout_fd, 1)
-    os.dup2(original_stderr_fd, 2)
-
-def disable_print():
-    os.dup2(devnull_fd, 1)
-    os.dup2(devnull_fd, 2)
+warnings.filterwarnings("ignore")
 
 
 class SpeechGenerator:
@@ -76,14 +78,10 @@ class SpeechGenerator:
                 self.cosyvoice.inference_zero_shot(tts_text, prompt_text, prompt_wav, stream=False)
             ):
                 torchaudio.save(save_file, j['tts_speech'], self.cosyvoice.sample_rate)
-            enable_print()
             print("Success, save file {}".format(save_file))
-            disable_print()
             
         except Exception as e:
-            enable_print()
             print("Task failed ", e)
-            disable_print()
     
     
     def cross_lingual_gen(
@@ -102,18 +100,15 @@ class SpeechGenerator:
             save_file = 'outputs/tts_cross_{}.wav'.format(self.timestamp())
         
         try:
+            input_text = f"You are a helpful assistant.<|endofprompt|>{tts_text} "
             for _, j in enumerate(
-                self.cosyvoice.inference_cross_lingual(tts_text, prompt_wav, stream=False)
+                self.cosyvoice.inference_cross_lingual(input_text, prompt_wav, stream=False)
             ):
                 torchaudio.save(save_file, j['tts_speech'], self.cosyvoice.sample_rate)
-            enable_print()
             print("Success, save file {}".format(save_file))
-            disable_print()
             
         except Exception as e:
-            enable_print()
             print("Task failed ", e)
-            disable_print()
             
     
     def instruct_gen(
@@ -140,23 +135,18 @@ class SpeechGenerator:
             save_file = 'outputs/tts_instruct_{}.wav'.format(self.timestamp())
         
         try:
+            instruction = f"You are a helpful assistant. {instruct_prompt} <|endofprompt|>"
             for _, j in enumerate(
-                self.cosyvoice.inference_instruct2(tts_text, instruct_prompt, prompt_wav, stream=False)
+                self.cosyvoice.inference_instruct2(tts_text, instruction, prompt_wav, stream=False)
             ):
                 torchaudio.save(save_file, j['tts_speech'], self.cosyvoice.sample_rate)
-            enable_print()
             print("Success, save file {}".format(save_file))
-            disable_print()
             
         except Exception as e:
-            enable_print()
             print("Task failed ", e)
-            disable_print()
 
 
 def case():
-    # 初始化时保持静默
-    disable_print()
     generator = SpeechGenerator()
     
     generator.voice_clone('八百标兵奔北坡，北坡炮兵并排跑，炮兵怕把标兵碰，标兵怕碰炮兵炮', './asset/zero_shot_prompt.wav')
@@ -169,9 +159,6 @@ def case():
         'You are a helpful assistant. 请用广东话表达。<|endofprompt|>',
         './asset/zero_shot_prompt.wav'
     )
-    
-    # 最后恢复输出
-    enable_print()
 
 
 if __name__ == '__main__':
@@ -183,8 +170,6 @@ if __name__ == '__main__':
     parser.add_argument('--instruct_prompt', type=str, default='')
     
     args = parser.parse_args()
-    disable_print()
-    
     generator = SpeechGenerator()
     if args.task_type == 'voice_clone':
         generator.voice_clone(args.tts_text, args.prompt_wav)
@@ -194,5 +179,8 @@ if __name__ == '__main__':
         generator.instruct_gen(args.tts_text, args.instruct_prompt, args.prompt_wav)
     else:
         print("Unknown task type")
-    
-    enable_print() 
+
+
+# python -m inference.generator --tts_text '今天真是个好日子，困的不行，我再在群里随意发言，我有毒。' --instruct_prompt "用粤语生成" --task_type instruct_gen
+# python -m inference.generator --tts_text '今天真是个好日子，困的不行，我再在群里随意发言，我有毒。'  --task_type voice_clone
+# python -m inference.generator --tts_text '[四川话]八百标兵奔北坡，北坡炮兵并排跑，炮兵怕把标兵碰，标兵怕碰炮兵炮'  --task_type cross_lingual_gen 
