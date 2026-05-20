@@ -14,7 +14,8 @@ git submodule update --init --recursive
 # Using uv (recommended)
 uv venv --python 3.10
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uv pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com
+uv pip install setuptools==69.5.1
+uv pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com --index-strategy unsafe-best-match
 ```
 
 ## Download Model
@@ -28,4 +29,17 @@ or
 python download.py
 ```
 
+## Unzip Resources
+```bash
+cd pretrained_models/CosyVoice-ttsfrd/
+unzip resource.zip -d .
+uv pip install ttsfrd_dependency-0.1-py3-none-any.whl
+uv pip install ttsfrd-0.4.2-cp310-cp310-linux_x86_64.whl
+```
+
+
+## Execute Example
+```bash
+python -m inference.generator
+```
 
