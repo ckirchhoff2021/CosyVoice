@@ -73,6 +73,8 @@ class SpeechGenerator:
         prompt_text='You are a helpful assistant.<|endofprompt|>希望你以后能够做的比我还好呦。'
         if len(save_file) == 0:
             save_file = 'outputs/tt_clone_{}.wav'.format(self.timestamp())
+        else:
+            save_file = f'outputs/{save_file}'
         
         try:
             audio_chunks = []
@@ -102,6 +104,8 @@ class SpeechGenerator:
         '''
         if len(save_file) == 0:
             save_file = 'outputs/tts_cross_{}.wav'.format(self.timestamp())
+        else:
+            save_file = f'outputs/{save_file}'
         
         try:
             audio_chunks = []
@@ -141,6 +145,8 @@ class SpeechGenerator:
         '''
         if len(save_file) == 0:
             save_file = 'outputs/tts_instruct_{}.wav'.format(self.timestamp())
+        else:
+            save_file = f'outputs/{save_file}'
         
         try:
             audio_chunks = []
@@ -179,16 +185,17 @@ if __name__ == '__main__':
     parser.add_argument('--task_type', type=str, default='voice_clone', choices=['voice_clone', 'cross_lingual_gen', 'instruct_gen'])
     parser.add_argument('--tts_text', type=str, default='八百标兵奔北坡，北坡炮兵并排跑，炮兵怕把标兵碰，标兵怕碰炮兵炮')
     parser.add_argument('--prompt_wav', type=str, default='./asset/zero_shot_prompt.wav')
+    parser.add_argument('--save_file', type=str, default='')
     parser.add_argument('--instruct_prompt', type=str, default='')
     
-    args = parser.parse_args()
+    args = parser.parse_args()     
     generator = SpeechGenerator()
     if args.task_type == 'voice_clone':
-        generator.voice_clone(args.tts_text, args.prompt_wav)
+        generator.voice_clone(args.tts_text, args.prompt_wav, args.save_file)
     elif args.task_type == 'cross_lingual_gen':
-        generator.cross_lingual_gen(args.tts_text, args.prompt_wav)
+        generator.cross_lingual_gen(args.tts_text, args.prompt_wav, args.save_file)
     elif args.task_type == 'instruct_gen':
-        generator.instruct_gen(args.tts_text, args.instruct_prompt, args.prompt_wav)
+        generator.instruct_gen(args.tts_text, args.instruct_prompt, args.prompt_wav, args.save_file)
     else:
         print("Unknown task type")
 
