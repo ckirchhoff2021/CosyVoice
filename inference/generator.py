@@ -5,7 +5,7 @@ import warnings
 import argparse
 import subprocess
 
-# 检查是否已经是子进程
+# # 检查是否已经是子进程
 if os.environ.get('__SILENT_RUN') != '1':
     # 父进程：重定向并以子进程方式运行
     os.environ['__SILENT_RUN'] = '1'
@@ -29,7 +29,7 @@ if os.environ.get('__SILENT_RUN') != '1':
     sys.exit(result.returncode)
     
 
-# ===== 下面是实际的业务逻辑 =====
+# # ===== 下面是实际的业务逻辑 =====
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/..')
@@ -73,8 +73,6 @@ class SpeechGenerator:
         prompt_text='You are a helpful assistant.<|endofprompt|>希望你以后能够做的比我还好呦。'
         if len(save_file) == 0:
             save_file = 'outputs/tt_clone_{}.wav'.format(self.timestamp())
-        else:
-            save_file = f'outputs/{save_file}'
         
         try:
             audio_chunks = []
@@ -104,8 +102,6 @@ class SpeechGenerator:
         '''
         if len(save_file) == 0:
             save_file = 'outputs/tts_cross_{}.wav'.format(self.timestamp())
-        else:
-            save_file = f'outputs/{save_file}'
         
         try:
             audio_chunks = []
@@ -145,8 +141,6 @@ class SpeechGenerator:
         '''
         if len(save_file) == 0:
             save_file = 'outputs/tts_instruct_{}.wav'.format(self.timestamp())
-        else:
-            save_file = f'outputs/{save_file}'
         
         try:
             audio_chunks = []
